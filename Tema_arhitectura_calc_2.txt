@@ -1,0 +1,134 @@
+HalfAdder:
+
+CHIP HalfAdder {
+    IN a, b;    // 1-bit inputs
+    OUT sum,    // Right bit of a + b 
+        carry;  // Left bit of a + b
+
+    PARTS:
+
+Nand(a=a,b=b,out=c);
+Nand(a=a,b=c,out=d);
+Nand(a=c,b=b,out=e);
+Nand(a=d,b=e,out=sum);
+Nand(a=c,b=c,out=carry);
+
+}
+
+FullAdder:
+
+CHIP FullAdder {
+    IN a, b, c;  // 1-bit inputs
+    OUT sum,     // Right bit of a + b + c
+        carry;   // Left bit of a + b + c
+
+    PARTS:
+Nand(a=a,b=b,out=out1);
+
+Nand(a=a,b=out1,out=out2);
+
+Nand(a=out1,b=b,out=out3);
+Nand(a=out2,b=out3,out=out4);
+
+Nand(a=out4,b=c,out=out5);
+Nand(a=out4,b=out5,out=out6);
+
+Nand(a=out5,b=c,out=out7);
+Nand(a=out6,b=out7,out=sum);
+Nand(a=out5,b=out1,out=carry);
+
+}
+
+add16:
+
+   CHIP Add16 {
+    IN a[16], b[16];
+    OUT out[16];
+
+    PARTS:
+   HalfAdder(a=a[0], b=b[0], sum=out[0], carry=carry0);
+   FullAdder(a=a[1], b=b[1], c=carry0, sum=out[1], carry=carry1);
+   FullAdder(a=a[2], b=b[2], c=carry1, sum=out[2], carry=carry2);
+   FullAdder(a=a[3], b=b[3], c=carry2, sum=out[3], carry=carry3);
+   FullAdder(a=a[4], b=b[4], c=carry3, sum=out[4], carry=carry4);
+   FullAdder(a=a[5], b=b[5], c=carry4, sum=out[5], carry=carry5);
+   FullAdder(a=a[6], b=b[6], c=carry5, sum=out[6], carry=carry6);
+   FullAdder(a=a[7], b=b[7], c=carry6, sum=out[7], carry=carry7);
+   FullAdder(a=a[8], b=b[8], c=carry7, sum=out[8], carry=carry8);
+   FullAdder(a=a[9], b=b[9], c=carry8, sum=out[9], carry=carry9);
+   FullAdder(a=a[10], b=b[10], c=carry9, sum=out[10], carry=carry10);
+   FullAdder(a=a[11], b=b[11], c=carry10, sum=out[11], carry=carry11);
+   FullAdder(a=a[12], b=b[12], c=carry11, sum=out[12], carry=carry12);
+   FullAdder(a=a[13], b=b[13], c=carry12, sum=out[13], carry=carry13);
+   FullAdder(a=a[14], b=b[14], c=carry13, sum=out[14], carry=carry14);
+   FullAdder(a=a[15], b=b[15], c=carry14, sum=out[15], carry=carry15);    
+
+}
+
+inc16:
+
+    CHIP Inc16 {
+    IN in[16];
+    OUT out[16];
+
+    PARTS:
+   HalfAdder(a=in[0], b=true, sum=out[0], carry=w0);
+    HalfAdder(a=in[1], b=w0, sum=out[1], carry=w1);
+    HalfAdder(a=in[2], b=w1, sum=out[2], carry=w2);
+    HalfAdder(a=in[3], b=w2, sum=out[3], carry=w3);
+    HalfAdder(a=in[4], b=w3, sum=out[4], carry=w4);
+    HalfAdder(a=in[5], b=w4, sum=out[5], carry=w5);
+    HalfAdder(a=in[6], b=w5, sum=out[6], carry=w6);
+    HalfAdder(a=in[7], b=w6, sum=out[7], carry=w7);
+    HalfAdder(a=in[8], b=w7, sum=out[8], carry=w8);
+    HalfAdder(a=in[9], b=w8, sum=out[9], carry=w9);
+    HalfAdder(a=in[10], b=w9, sum=out[10], carry=w10);
+    HalfAdder(a=in[11], b=w10, sum=out[11], carry=w11);
+    HalfAdder(a=in[12], b=w11, sum=out[12], carry=w12);
+    HalfAdder(a=in[13], b=w12, sum=out[13], carry=w13);
+    HalfAdder(a=in[14], b=w13, sum=out[14], carry=w14);
+    HalfAdder(a=in[15], b=w14, sum=out[15], carry=w15);
+
+}
+
+ALU:
+
+IN  
+        x[16], y[16],  // 16-bit inputs        
+        zx, // zero the x input?
+        nx, // negate the x input?
+        zy, // zero the y input?
+        ny, // negate the y input?
+        f,  // compute out = x + y (if 1) or x & y (if 0)
+        no; // negate the out output?
+
+    OUT 
+        out[16], // 16-bit output
+        zr, // 1 if (out == 0), 0 otherwise
+        ng; // 1 if (out < 0),  0 otherwise
+
+    PARTS:
+
+    Mux16(a=x, b=false, sel=zx, out=x1);
+    Mux16(a=y, b=false, sel=zy, out=y1);
+
+    Not16(in=x1, out=notx1);
+    Mux16(a=x1, b=notx1, sel=nx, out=x2);
+    Not16(in=y1, out=noty1);
+    Mux16(a=y1, b=noty1, sel=ny, out=y2);
+
+    Add16(a=x2, b=y2, out=addout);
+    And16(a=x2, b=y2, out=andout);
+    Mux16(a=andout, b=addout, sel=f, out=fout);
+
+    Not16(in=fout, out=notfout);
+    Mux16(a=fout, b=notfout, sel=no, out=out, out[0..7]=out7, out[8..15]=out15, out[15]=isng);
+
+    Or8Way(in=out7, out=zr0);
+    Or8Way(in=out15, out=zr1);
+    Or(a=zr0, b=zr1, out=zr2);
+    Not(in=zr2, out=zr);
+
+    And(a=isng, b=true, out=ng);
+
+}
